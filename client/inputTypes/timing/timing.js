@@ -139,14 +139,16 @@ AutoForm.addInputType('timing', {
   valueOut() {
     console.log("Value OUT");
     console.log(this.attr('data-format'));
+    const format = this.attr('data-format');
     //AutoForm.addStickyValidationError("insertBookForm", this.context.name, "1");
     //return moment.duration(this.val()).asMilliseconds();
     //return this.val();
     //console.log(AutoForm.Utility.getComponentContext(this, 'timingsss'));
     //console.log(AutoForm.getSchemaForField(this[0].name));
     //console.log(AutoForm.getFormSchema().namedContext(AutoForm.getFormId()));
-    const arrResult = DEFAULT_INPUT_DATE_FORMAT.exec(this.val());
-    if (arrResult == null) return this.val();
+    const arrResult = FORMATS[format].format.exec(this.val());
+    console.log(arrResult);
+    if (arrResult == null) return this.val(); // ??? some things are correct. Need sticky validation???
     const def = {h: toInt(arrResult[1]), m: toInt(arrResult[2]), s: toInt(arrResult[3]), ms: toInt(arrResult[4]*1000)};
     return def["ms"]+1000*(def["s"]+60*(def["m"]+60*def["h"]));
   },
