@@ -8,6 +8,8 @@ const DEFAULT_INPUT_DATE_FORMAT = SECONDS_DATE_FORMAT = /^(?!\.)(?!\:)(?:(?:(\d*
 const MINUTE_DATE_FORMAT = /^(?!\.)(?!\:)(?:(\d+)\:(?=\d+\:\d+))?(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?$/;
 const HOUR_DATE_FORMAT = /^(?!\.)(?!\:)(\d+)(?:\:(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?)?$/;
 
+const DEFAULT_FORMAT = 'S';
+
 
 /*const MS = 0;
 const S =  1;
@@ -52,37 +54,37 @@ const FORMAT_ARRAY = [
   }
 ];
 
-const FORMATS = {
-    MS: {
-      name: 'MS',
-      format: /^(?!\.)(?!\:)(?:(?:(?:(\d+)\:)?(\d+)\:)?(\d+)\.)?(\d+)$/,
-      delimiter: '.',
-      zeros: 3,
-      required: false
-    },
-    S: {
-      name: 'S',
-      format: /^(?!\.)(?!\:)(?:(?:(\d*)\:)?(?:(\d+)\:))?(\d+)(\.?\d{1,3})?$/,
-      base: 1000,
-      delimiter: ':',
-      zeros: 2,
-      required: true
-    },
-    M: {
-      name: 'M',
-      format: /^(?!\.)(?!\:)(?:(\d+)\:(?=\d+\:\d+))?(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?$/,
-      base: 60,
-      delimiter: ':',
-      zeros: 2,
-      required: true
-    },
-    H: {
-      name: 'H',
-      format: /^(?!\.)(?!\:)(\d+)(?:\:(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?)?$/,
-      base: 60,
-      required: true
-    },
-};
+/* const FORMATS = {
+  MS: {
+    name: 'MS',
+    format: /^(?!\.)(?!\:)(?:(?:(?:(\d+)\:)?(\d+)\:)?(\d+)\.)?(\d+)$/,
+    delimiter: '.',
+    zeros: 3,
+    required: false
+  },
+  S: {
+    name: 'S',
+    format: /^(?!\.)(?!\:)(?:(?:(\d*)\:)?(?:(\d+)\:))?(\d+)(?:\.?(\d{1,3}))?$/,
+    base: 1000,
+    delimiter: ':',
+    zeros: 2,
+    required: true
+  },
+  M: {
+    name: 'M',
+    format: /^(?!\.)(?!\:)(?:(\d+)\:(?=\d+\:\d+))?(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?$/,
+    base: 60,
+    delimiter: ':',
+    zeros: 2,
+    required: true
+  },
+  H: {
+    name: 'H',
+    format: /^(?!\.)(?!\:)(\d+)(?:\:(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?)?$/,
+    base: 60,
+    required: true
+  },
+}; */
 
 function toInt(arg) {
   let result = +arg;
@@ -125,10 +127,69 @@ function convertToTimeFormat(value, format) {
   }
 }
 
+const MS_OBJ = {
+  name: 'MS',
+  format: /^(?!\.)(?!\:)(?:(?:(?:(\d+)\:)?(\d+)\:)?(\d+)\.)?(\d+)$/,
+  base: 1,
+  delimiter: '.',
+  zeros: 3,
+  required: false,
+  index: 4,
+  previous: null,
+};
+
+const S_OBJ = {
+  name: 'S',
+  format: /^(?!\.)(?!\:)(?:(?:(\d*)\:)?(?:(\d+)\:))?(\d+)(?:\.?(\d{1,3}))?$/,
+  base: 1000,
+  delimiter: ':',
+  zeros: 2,
+  required: true,
+  index: 3,
+  previous: MS_OBJ.name,
+};
+
+const M_OBJ = {
+  name: 'M',
+  format: /^(?!\.)(?!\:)(?:(\d+)\:(?=\d+\:\d+))?(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?$/,
+  base: 60,
+  delimiter: ':',
+  zeros: 2,
+  required: true,
+  index: 2,
+  previous: S_OBJ.name,
+};
+
+const H_OBJ = {
+  name: 'H',
+  format: /^(?!\.)(?!\:)(\d+)(?:\:(\d+)(?:\:(\d+)(?:\.(\d{1,3}))?)?)?$/,
+  base: 60,
+  required: true,
+  index: 1,
+  previous: M_OBJ.name,
+};
+
+const FORMATS = {
+  MS: MS_OBJ,
+  S: S_OBJ,
+  M: M_OBJ,
+  H: H_OBJ,
+};
+
+
+function sumArrayByObject(array, object) {
+  let result = 0;
+  for (let property in object) {
+    result += toInt(array[object[property].index]) * object[property].base;
+  }
+  console.log(result);
+  return result;
+}
+
 AutoForm.addInputType('timing', {
   template: 'timingsss',
   valueIn(value, atts) {
-    console.log("Value IN");
+    // console.log("Value IN");
     let format = 'S';
     if (FORMAT_OBJECT[atts.format] !== undefined) {
       format = atts.format;
@@ -140,34 +201,24 @@ AutoForm.addInputType('timing', {
     console.log("Value OUT");
     console.log(this.attr('data-format'));
     const format = this.attr('data-format');
-    //AutoForm.addStickyValidationError("insertBookForm", this.context.name, "1");
-    //return moment.duration(this.val()).asMilliseconds();
-    //return this.val();
-    //console.log(AutoForm.Utility.getComponentContext(this, 'timingsss'));
-    //console.log(AutoForm.getSchemaForField(this[0].name));
-    //console.log(AutoForm.getFormSchema().namedContext(AutoForm.getFormId()));
-    const arrResult = FORMATS[format].format.exec(this.val());
-    console.log(arrResult);
-    if (arrResult == null) return this.val(); // ??? some things are correct. Need sticky validation???
-    const def = {h: toInt(arrResult[1]), m: toInt(arrResult[2]), s: toInt(arrResult[3]), ms: toInt(arrResult[4]*1000)};
-    return def["ms"]+1000*(def["s"]+60*(def["m"]+60*def["h"]));
+    const regEx = FORMATS[format] || FORMATS[DEFAULT_FORMAT];
+    const arrResult = regEx.format.exec(this.val());
+    if (!arrResult) return this.val(); // ??? some things are correct. Need sticky validation???
+    // const def = {h: toInt(arrResult[1]), m: toInt(arrResult[2]), s: toInt(arrResult[3]), ms: toInt(arrResult[4])};
+    // return def["ms"]+1000*(def["s"]+60*(def["m"]+60*def["h"]));
+    return sumArrayByObject(arrResult, FORMATS);
   },
-  /*valueConverters: {
-    "number": function(val) {
-      return moment.duration(val).asMilliseconds();
-    }
-  }*/
-  contextAdjust: function(context) {
+  contextAdjust(context) {
     console.log(context.atts.format);
-    context.atts['data-format'] = context.atts.format || 'S';
+    context.atts['data-format'] = context.atts.format || DEFAULT_FORMAT;
     return context;
-  }
+  },
 });
 
-/*Template.timingsss.onCreated(() => {
+/* Template.timingsss.onCreated(() => {
   console.log('OnCreated');
   console.log(Template.instance());
-});*/
+}); */
 
 Template.timingsss.helpers({
   atts() {
@@ -177,5 +228,5 @@ Template.timingsss.helpers({
       atts = AutoForm.Utility.addClass(atts, 'invalid');
     }
     return atts;
-  }
+  },
 });
